@@ -1,0 +1,15 @@
+<?php
+
+//Creates database named markUpDB//
+$sql = "CREATE DATABASE markUpDB";
+
+//Creates table named scores//
+$scoresTable = "CREATE TABLE scores
+(
+  ID char(15) NOT NULL,
+  when Timestamp,
+  PRIMARY KEY(ID, when),
+  score INT
+)";
+
+?>
