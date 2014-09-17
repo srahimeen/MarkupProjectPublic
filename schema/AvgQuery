@@ -1,0 +1,10 @@
+<?php
+
+$sqlString = "SELECT ID, AVG(score)
+              FROM scores";
+
+$result = mysqli_query($connect, $sqlString);
+
+?>
+
+//AVG scores query, evoked in main object//
