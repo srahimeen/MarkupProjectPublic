@@ -6,6 +6,10 @@ import tkinter as tk
 from tkinter import filedialog
 from html.parser import HTMLParser
 from datetime import datetime
+import warnings
+
+#don't display warnings in console for IF NOT EXISTS for table creation
+warnings.filterwarnings('ignore', category=MySQLdb.Warning) 
 
 #database information, change values here. 
 host = "localhost"
@@ -43,13 +47,14 @@ while(menu):
 	print("3 : Find the scores within a data range.")
 	print("4 : Find the lowest score.")
 	print("5 : Find the highest score.")
-	print("6 : Exit the menu.")
+	print("6 : Find the average score.")
+	print("7 : Exit the menu.")
 
 	try:
 		value = int(input("Select an input: "))
-		break
 	except ValueError:
-		print("Invalid input. Please try again!")
+		print("Invalid input. Try again! \n")
+		continue
 
 
 	#calulate and save
@@ -57,7 +62,7 @@ while(menu):
 		root = tk.Tk()
 		root.withdraw()
 		filename = filedialog.askopenfilename()
-		print(filename)
+		print("Selected file: " + filename)
 
 		startTags = [] #list of start tags found in file
 		score = 0; #total score of tags
@@ -78,24 +83,22 @@ while(menu):
 		for i in startTags:
 			score += scoringRules[i]
 
-		print(score)
+		print("Calulated score: " + str(score))
 
-		#get filename with extension to store
+		#get filename with extension 
 		filename = os.path.basename(filename)
-		print(filename)
-
 		#create datetime from filename to store
 		filevalue = os.path.splitext(filename)[0] #remove extension
 		person_name = filevalue.split("_")[0] #extract name from filename
 		date = '/'.join(filevalue.split("_")[1::]) #create date string
 		parsed_date = datetime.strptime(date, "%Y/%m/%d") #create datetime from strong
 		sql_date = parsed_date.strftime('%Y-%m-%d %H:%M:%S') #make datemine sql friendly
-		print(sql_date)
+		#print(sql_date)
 
 		#get current time
 		sql_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S") #create datetime 
 		
-		print(sql_now)
+		#print(sql_now)
 
 
 		#open database connection
@@ -103,8 +106,8 @@ while(menu):
 		#prepare a cursor object using cursor() method
 		cursor = db.cursor()
 
-		#drop table for testing
-		cursor.execute("DROP TABLE IF EXISTS HTMLSCORES")
+		#UTILITY:drop table for testing
+		#cursor.execute("DROP TABLE IF EXISTS HTMLSCORES")
 
 		#query to create table if it does not exist	
 		create_query = """CREATE TABLE IF NOT EXISTS HTMLSCORES (
@@ -121,15 +124,22 @@ while(menu):
 		store_query = ("""INSERT INTO HTMLSCORES (FILE_NAME, PERSON_NAME, SCORE, DATE_CREATED, DATE_RUN)
 				VALUES (%s, %s, %s, %s, %s)""")
 		#current data to store
-		data = (filename, person_name, score, sql_date, sql_now)
-		#update database
-		cursor.execute(store_query, data)
-		db.commit()
+		data = (filevalue, person_name, score, sql_date, sql_now)
+		#perform query update database and handle exceptions
+		try:
+			cursor.execute(store_query, data)
+			db.commit()
+		except Exception as e:
+			print("File already exists. Try a different file. \n" )
+			continue
+
+		print("File saved! \n")
+
 		db.close()
 
 	#retrieve score by filename
 	elif(value==2):
-		print("Please enter file name to search.")
+		print("Please enter file name without the extension (eg. bob_2013_02_15) to search.")
 		filename = input("Filename: ")
 
 		#open database connection
@@ -137,21 +147,150 @@ while(menu):
 		#prepare a cursor object using cursor() method
 		cursor = db.cursor()
 
+		#query to get value by filename
 		retrieve_query = "SELECT SCORE FROM HTMLSCORES WHERE FILE_NAME='%s'" % (filename)
 
-		cursor.execute(retrieve_query)
+		try:
+			cursor.execute(retrieve_query)
+		except Exception as e:
+			print("Invalid file name. Try again. \n" )
+			continue
+
+		if(cursor.rowcount == 0):
+			print("Invalid file name. Try again. \n" )
+			continue
+		
 
 		#fetch result integer
 		result = cursor.fetchone()
 		result = result[0]
 
-		print(result)
+		print("Score for the file is: " + str(result) + "\n")
+
+		db.close()
+	#retrieve scores between date range
+	elif(value == 3):
+		print("Enter starting date in format yyyy/mm/dd.")
+		start_date = input("Start date: ")
+		print("Enter end date in format yyyy/mm/dd.")
+		end_date = input("End date: ")
+
+		#open database connection
+		db = MySQLdb.connect(host,admin,password,database_name)
+		#prepare a cursor object using cursor() method
+		cursor = db.cursor()
+
+		#query to get value by filename
+		date_query = "SELECT PERSON_NAME, SCORE FROM HTMLSCORES WHERE DATE_CREATED>='%s' AND DATE_CREATED<='%s'" % (start_date, end_date)
+
+		try:
+			cursor.execute(date_query)
+		except Exception as e:
+			print("Invalid date format. Try again. \n" )
+			continue
+
+		if(cursor.rowcount == 0):
+			print("No results found within date range. Try again. \n" )
+			continue
+
+		result = cursor.fetchall()
+
+		print("Name|Score")
+		for row in result:
+			print(str(row[0]) + " | " + str(row[1]))
+		print("\n")
+
 
 		db.close()
 
+	#retrieve min
+	elif(value == 4):
+		#open database connection
+		db = MySQLdb.connect(host,admin,password,database_name)
+		#prepare a cursor object using cursor() method
+		cursor = db.cursor()
 
+		min_query = "SELECT PERSON_NAME, SCORE FROM HTMLSCORES WHERE SCORE=(SELECT MIN(SCORE) FROM HTMLSCORES)"
 
+		#handle exceptions
+		try:
+			cursor.execute(min_query)
+		except Exception as e:
+			print("Invalid query. Try again. \n" )
+			continue
 
+		if(cursor.rowcount == 0):
+			print("No value found. Try again. \n" )
+			continue
 
+		#fetch result integer
+		result = cursor.fetchone()
+		name = result[0]
+		min_score = result[1]
 
+		print("The lowest score is : " + name + " | " + str(min_score) + "\n")
+
+		db.close()
+	#retieve max
+	elif(value == 5):
+		#open database connection
+		db = MySQLdb.connect(host,admin,password,database_name)
+		#prepare a cursor object using cursor() method
+		cursor = db.cursor()
+
+		max_query = "SELECT PERSON_NAME, SCORE FROM HTMLSCORES WHERE SCORE=(SELECT MAX(SCORE) FROM HTMLSCORES)"
+
+		try:
+			cursor.execute(max_query)
+		except Exception as e:
+			print("Invalid query. Try again. \n" )
+			continue
+
+		if(cursor.rowcount == 0):
+			print("No value found. Try again. \n" )
+			continue
+
+		#fetch result integer
+		result = cursor.fetchone()
+		name = result[0]
+		max_score = result[1]
+
+		print("The highest score is : " + name + " | " + str(max_score) + "\n")
+
+		db.close()
+	#exit
+	elif(value == 6):
+		#open database connection
+		db = MySQLdb.connect(host,admin,password,database_name)
+		#prepare a cursor object using cursor() method
+		cursor = db.cursor()
+
+		min_query = "SELECT AVG(SCORE) FROM HTMLSCORES"
+
+		#handle exceptions
+		try:
+			cursor.execute(min_query)
+		except Exception as e:
+			print("Invalid query. Try again. \n" )
+			continue
+
+		if(cursor.rowcount == 0):
+			print("No value found. Try again. \n" )
+			continue
+
+		#fetch result integer
+		result = cursor.fetchone()
+		avg_score = result[0]
+	
+
+		print("The average score is " + str(avg_score) + "\n")
+
+		db.close()
+	elif(value == 7):
+		print("Exiting program.")
+		menu = False
+		break
+	else:
+		print("Invalid input. Try again. \n")
+		continue
 
