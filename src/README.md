@@ -19,6 +19,8 @@ password = "root"
 
 database_name = "testdb"
 
+Since tables are created by the program itself as long as the database exists, no scripts were placed in the /schema folder.
+
 
 ### External Libraries
 This program utilizes a few external libraries which are imported at the top of the TagGrader.py file. The following libraries are used:
