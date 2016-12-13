@@ -43,6 +43,8 @@ from datetime import datetime
 
 import warnings
 
+Since the import keyword was used, no local libraries were placed in the /vendors folder.
+
 
 ### Other Information
 The query for average score was merged into the main menu of program instead of being in the /schema folder.
