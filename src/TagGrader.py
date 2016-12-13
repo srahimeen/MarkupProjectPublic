@@ -1,3 +1,5 @@
+# Author: Soufin Rahimeen
+# Sequential console program solution.
 import os
 import pymysql
 pymysql.install_as_MySQLdb()

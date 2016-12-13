@@ -1,3 +1,5 @@
+## Detailed instructions available in src/README.md
+
 MarkupProject
 =============
 
