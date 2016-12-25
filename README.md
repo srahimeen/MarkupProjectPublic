@@ -1,5 +1,4 @@
-## Detailed instructions and solution details available in src/README.md
-## The follwing is the official project description.
+## Detailed instructions and solution details available in src/README.md. The follwing is the official project description.
 
 MarkupProject
 =============
