@@ -1,5 +1,5 @@
 ### General Information
-This program was created using Python 3.5.2 and is structured as a colsole application.
+This program was created using Python 3.5.2 and is structured as a console application.
 
 ### Compile and Run
 In order to run the program, navigate to the /src folder from the terminal and run the following command:
